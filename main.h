@@ -1,8 +1,8 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 // ========== Macros ===========
 
@@ -11,20 +11,19 @@
 // Encode pin as 0xBBNN → BB = bank (0=A,1=B,etc), NN = pin number (0–15)
 #define PIN(bank, num) ((((bank) - 'A') << 8) | (num))
 
-#define PINNO(pin)   ((pin) & 0xFF)
+#define PINNO(pin) ((pin) & 0xFF)
 #define PINBANK(pin) ((pin) >> 8)
 
 // ========== Structs for GPIO and RCC ===========
 
-struct gpio
-{
-    volatile uint32_t CRL;  // Port configuration register low
-    volatile uint32_t CRH;  // Port configuration register high
-    volatile uint32_t IDR;  // Port input data register
-    volatile uint32_t ODR;  // Port output data register
-    volatile uint32_t BSRR; // Port bit set/reset register
-    volatile uint32_t BRR;  // Port bit reset register
-    volatile uint32_t LCKR; // Port configuration lock register
+struct gpio {
+    volatile uint32_t CRL;   // Port configuration register low
+    volatile uint32_t CRH;   // Port configuration register high
+    volatile uint32_t IDR;   // Port input data register
+    volatile uint32_t ODR;   // Port output data register
+    volatile uint32_t BSRR;  // Port bit set/reset register
+    volatile uint32_t BRR;   // Port bit reset register
+    volatile uint32_t LCKR;  // Port configuration lock register
 };
 
 struct rcc {
@@ -40,37 +39,33 @@ struct rcc {
     volatile uint32_t CSR;
 };
 
-#define RCC ((struct rcc *)0x40021000)
+#define RCC ((struct rcc*)0x40021000)
 
 // Returns GPIOA, GPIOB, GPIOC...
-#define GPIO(bank) ((struct gpio *)(0x40010800 + 0x400 * (bank)))
+#define GPIO(bank) ((struct gpio*)(0x40010800 + 0x400 * (bank)))
 
 // ========== Enums for mode configuration ===========
 
-enum GPIO_Input_Mode
-{
+enum GPIO_Input_Mode {
     GPIO_Input_Analog = 0,
     GPIO_Input_Floating = 1,
     GPIO_Input_PullUpDown = 2
 };
 
-enum GPIO_Output_Mode
-{
+enum GPIO_Output_Mode {
     GPIO_Output_PushPull = 0,
     GPIO_Output_OpenDrain = 1,
     GPIO_Output_AltPushPull = 2,
     GPIO_Output_AltOpenDrain = 3
 };
 
-enum GPIO_Speed
-{
+enum GPIO_Speed {
     GPIO_Speed_10MHz = 1,
     GPIO_Speed_2MHz = 2,
     GPIO_Speed_50MHz = 3
 };
 
-enum APB2_Peripheral
-{
+enum APB2_Peripheral {
     APB2_Peripheral_AFIO = 0,
     APB2_Peripheral_GPIOA = 2,
     APB2_Peripheral_GPIOB = 3,
@@ -84,4 +79,4 @@ enum APB2_Peripheral
     APB2_Peripheral_USART1 = 14,
 };
 
-#endif // MAIN_H
+#endif  // MAIN_H
