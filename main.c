@@ -32,22 +32,61 @@ static inline void gpio_write(uint16_t pin, bool value) {
 }
 
 static inline void spin(volatile uint32_t count) {
-    while (count--) (void)0;
+    while (count--) asm("nop");
 }
 
-int main(void) {
-    uint16_t pin = PIN('A', 5);  // PA5
+static inline void systick_init(uint32_t ticks) {
+    if ((ticks - 1U) > 0xFFFFFFU) {
+        return;  // Reload value impossible, Systick timer is 24 bit
+    }
 
+    SYSTICK->LOAD = (uint32_t)(ticks - 1U);  // Set reload register
+    SYSTICK->VAL = 0U;                       // Load the SysTick Counter Value
+    SYSTICK->CTRL =
+        BIT(0) | BIT(1) | BIT(2);  // Enable SysTick IRQ and SysTick Timer
+}
+
+bool timer_expired(uint32_t* timer, uint32_t period, uint32_t now) {
+    if (now + period < *timer) {
+        *timer = 0;  // Timer overflowed, reset
+    }
+
+    if (*timer == 0) {
+        *timer = now + period;  // first call, set expiration time
+    }
+
+    if (*timer > now) {
+        return false;  // Not yet expired
+    }
+
+    // set next expiration time
+    *timer = (now - *timer) > period ? now + period : *timer + period;
+    return true;  // Expired
+}
+
+static volatile uint32_t s_ticks;
+void systick_handler(void) { s_ticks++; }
+
+int main(void) {
     // Enable clock for gpio port a
     RCC->APB2ENR |= BIT(APB2_Peripheral_GPIOA);  // IOPAEN is bit 2
 
+    // Configure SysTick for 1ms ticks
+    systick_init(FREQ_HZ / 1000);
+
+    // Configure PA5 as output push-pull, max speed 10MHz
+    uint16_t pin = PIN('A', 5);  // PA5
     gpio_set_mode(pin, GPIO_Output_PushPull, GPIO_Speed_10MHz);
 
+    uint32_t timer;
+    uint32_t period = 500;  // Blink period in ms
+
     for (;;) {
-        gpio_write(pin, true);
-        spin(1000000);
-        gpio_write(pin, false);
-        spin(1000000);
+        if (timer_expired(&timer, period, s_ticks)) {
+            static bool on;
+            gpio_write(pin, on);
+            on = !on;
+        }
     }
 
     return 0;
@@ -77,4 +116,4 @@ extern void _estack(void);  // Defined in link.ld
 
 // 16 standard and 60 STM32-specific handlers
 __attribute__((section(".vectors"))) void (*const tab[16 + 60])(void) = {
-    _estack, _reset};
+    _estack, _reset, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, systick_handler};

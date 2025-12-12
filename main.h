@@ -6,6 +6,8 @@
 
 // ========== Macros ===========
 
+#define FREQ_HZ 8000000UL  // 8 MHz
+
 #define BIT(x) (1UL << (x))
 
 // Encode pin as 0xBBNN → BB = bank (0=A,1=B,etc), NN = pin number (0–15)
@@ -26,6 +28,9 @@ struct gpio {
     volatile uint32_t LCKR;  // Port configuration lock register
 };
 
+// Returns GPIOA, GPIOB, GPIOC...
+#define GPIO(bank) ((struct gpio*)(0x40010800 + 0x400 * (bank)))
+
 struct rcc {
     volatile uint32_t CR;
     volatile uint32_t CFGR;
@@ -40,9 +45,6 @@ struct rcc {
 };
 
 #define RCC ((struct rcc*)0x40021000)
-
-// Returns GPIOA, GPIOB, GPIOC...
-#define GPIO(bank) ((struct gpio*)(0x40010800 + 0x400 * (bank)))
 
 // ========== Enums for mode configuration ===========
 
@@ -78,5 +80,16 @@ enum APB2_Peripheral {
     APB2_Peripheral_SPI1 = 12,
     APB2_Peripheral_USART1 = 14,
 };
+
+// ========== Structs for clock control ===========
+
+struct systick {
+    volatile uint32_t CTRL;   // SysTick control and status register
+    volatile uint32_t LOAD;   // SysTick reload value register
+    volatile uint32_t VAL;    // SysTick current value register
+    volatile uint32_t CALIB;  // SysTick calibration value register
+};
+
+#define SYSTICK ((struct systick*)0xE000E010)
 
 #endif  // MAIN_H
