@@ -46,6 +46,20 @@ struct rcc {
 
 #define RCC ((struct rcc*)0x40021000)
 
+struct uart {
+    volatile uint32_t SR;
+    volatile uint32_t DR;
+    volatile uint32_t BRR;
+    volatile uint32_t CR1;
+    volatile uint32_t CR2;
+    volatile uint32_t CR3;
+    volatile uint32_t GTPR;
+};
+
+#define USART1 ((struct uart*)0x40013800)
+#define USART2 ((struct uart*)0x40004400)
+#define USART3 ((struct uart*)0x40004800)
+
 // ========== Enums for mode configuration ===========
 
 enum GPIO_Input_Mode {
@@ -79,6 +93,59 @@ enum APB2_Peripheral {
     APB2_Peripheral_TIM1 = 11,
     APB2_Peripheral_SPI1 = 12,
     APB2_Peripheral_USART1 = 14,
+};
+
+enum APB1_Peripheral {
+    APB1_Peripheral_TIM2 = 0,
+    APB1_Peripheral_TIM3 = 1,
+    APB1_Peripheral_TIM4 = 2,
+    APB1_Peripheral_TIM5 = 3,
+    APB1_Peripheral_TIM6 = 4,
+    APB1_Peripheral_TIM7 = 5,
+    APB1_Peripheral_WWDG = 11,
+    APB1_Peripheral_SPI2 = 14,
+    APB1_Peripheral_SPI3 = 15,
+    APB1_Peripheral_USART2 = 17,
+    APB1_Peripheral_USART3 = 18,
+    APB1_Peripheral_UART4E = 19,
+    APB1_Peripheral_UART5E = 20,
+    APB1_Peripheral_I2C1 = 21,
+    APB1_Peripheral_I2C2 = 22,
+    APB1_Peripheral_CAN1 = 25,
+    APB1_Peripheral_CAN2 = 26,
+    APB1_Peripheral_BKP = 27,
+    APB1_Peripheral_PWR = 28,
+    APB1_Peripheral_DAC = 29,
+};
+
+enum CR1_BITS {
+    CR1_SBK = 0,
+    CR1_RWU = 1,
+    CR1_RE = 2,
+    CR1_TE = 3,
+    CR1_IDLEIE = 4,
+    CR1_RXNEIE = 5,
+    CR1_TCIE = 6,
+    CR1_TXEIE = 7,
+    CR1_PEIE = 8,
+    CR1_PS = 9,
+    CR1_PCE = 10,
+    CR1_WAKE = 11,
+    CR1_M = 12,
+    CR1_UE = 13,
+};
+
+enum SR_BITS {
+    SR_PE = 0,
+    SR_FE = 1,
+    SR_NE = 2,
+    SR_ORE = 3,
+    SR_IDLE = 4,
+    SR_RXNE = 5,
+    SR_TC = 6,
+    SR_TXE = 7,
+    SR_LBD = 8,
+    SR_CTS = 9,
 };
 
 // ========== Structs for clock control ===========

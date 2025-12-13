@@ -1,6 +1,7 @@
 #include "main.h"
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 static inline void gpio_set_mode(uint16_t gpio_pin,
@@ -11,6 +12,7 @@ static inline void gpio_set_mode(uint16_t gpio_pin,
 
     struct gpio* gpio = GPIO(PINBANK(gpio_pin));
     uint16_t pin = PINNO(gpio_pin);
+    RCC->APB2ENR |= BIT(APB2_Peripheral_GPIOA + PINBANK(gpio_pin));
 
     if (pin < 8) {
         config_reg = &gpio->CRL;
@@ -67,12 +69,61 @@ bool timer_expired(uint32_t* timer, uint32_t period, uint32_t now) {
 static volatile uint32_t s_ticks;
 void systick_handler(void) { s_ticks++; }
 
-int main(void) {
-    // Enable clock for gpio port a
-    RCC->APB2ENR |= BIT(APB2_Peripheral_GPIOA);  // IOPAEN is bit 2
+static inline void uart_init(struct uart* uart, uint32_t baudrate) {
+    uint16_t rx;
+    uint16_t tx;
 
+    if (uart == USART1) {
+        RCC->APB2ENR |= BIT(APB2_Peripheral_USART1);  // Enable USART1 clock
+        tx = PIN('A', 9);                             // PA9
+        rx = PIN('A', 10);                            // PA10
+    }
+
+    if (uart == USART2) {
+        RCC->APB1ENR |= BIT(APB1_Peripheral_USART2);  // Enable USART2 clock
+        tx = PIN('A', 2);                             // PA2
+        rx = PIN('A', 3);                             // PA3
+    }
+
+    if (uart == USART3) {
+        RCC->APB1ENR |= BIT(APB1_Peripheral_USART3);  // Enable USART3 clock
+        tx = PIN('B', 10);                            // PB10
+        rx = PIN('B', 11);                            // PB11
+    }
+
+    gpio_set_mode(tx, GPIO_Output_AltPushPull, GPIO_Speed_50MHz);
+    gpio_set_mode(rx, GPIO_Output_AltPushPull, GPIO_Speed_50MHz);
+
+    uart->CR1 = 0;                   // Disable USART
+    uart->BRR = FREQ_HZ / baudrate;  // Assuming PCLK2 = FREQ_HZ
+    uart->CR1 = BIT(CR1_TE) | BIT(CR1_RE) | BIT(CR1_UE);  // TE, RE, UE
+}
+
+static inline uint8_t uart_read_ready(struct uart* uart) {
+    return (uart->SR & BIT(SR_RXNE)) != 0;
+}
+
+static inline void uart_write_byte(struct uart* uart, uint8_t byte) {
+    uart->DR = byte;  // Write the byte to DR
+
+    while ((uart->SR & BIT(SR_TXE)) == 0) {
+        spin(1);
+    }
+}
+
+static inline void uart_write_buffer(struct uart* uart, const void* buffer,
+                                     size_t length) {
+    const uint8_t* ptr = (const uint8_t*)buffer;
+    while (length-- > 0) {
+        uart_write_byte(uart, *ptr++);
+    }
+}
+
+int main(void) {
     // Configure SysTick for 1ms ticks
     systick_init(FREQ_HZ / 1000);
+
+    uart_init(USART2, 115200);
 
     // Configure PA5 as output push-pull, max speed 10MHz
     uint16_t pin = PIN('A', 5);  // PA5
@@ -83,6 +134,7 @@ int main(void) {
 
     for (;;) {
         if (timer_expired(&timer, period, s_ticks)) {
+            uart_write_buffer(USART2, "hi\r\n", 4);
             static bool on;
             gpio_write(pin, on);
             on = !on;
