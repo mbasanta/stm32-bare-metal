@@ -56,9 +56,9 @@ struct uart {
     volatile uint32_t GTPR;
 };
 
-#define USART1 ((struct uart*)0x40013800)
-#define USART2 ((struct uart*)0x40004400)
-#define USART3 ((struct uart*)0x40004800)
+#define UART1 ((struct uart*)0x40013800)
+#define UART2 ((struct uart*)0x40004400)
+#define UART3 ((struct uart*)0x40004800)
 
 // ========== Enums for mode configuration ===========
 
@@ -207,19 +207,19 @@ static inline void uart_init(struct uart* uart, uint32_t baudrate) {
     uint16_t rx;
     uint16_t tx;
 
-    if (uart == USART1) {
+    if (uart == UART1) {
         RCC->APB2ENR |= BIT(APB2_Peripheral_USART1);  // Enable USART1 clock
         tx = PIN('A', 9);                             // PA9
         rx = PIN('A', 10);                            // PA10
     }
 
-    if (uart == USART2) {
+    if (uart == UART2) {
         RCC->APB1ENR |= BIT(APB1_Peripheral_USART2);  // Enable USART2 clock
         tx = PIN('A', 2);                             // PA2
         rx = PIN('A', 3);                             // PA3
     }
 
-    if (uart == USART3) {
+    if (uart == UART3) {
         RCC->APB1ENR |= BIT(APB1_Peripheral_USART3);  // Enable USART3 clock
         tx = PIN('B', 10);                            // PB10
         rx = PIN('B', 11);                            // PB11
@@ -228,7 +228,7 @@ static inline void uart_init(struct uart* uart, uint32_t baudrate) {
     gpio_set_mode(tx, GPIO_Output_AltPushPull, GPIO_Speed_50MHz);
     gpio_set_mode(rx, GPIO_Output_AltPushPull, GPIO_Speed_50MHz);
 
-    uart->CR1 = 0;                   // Disable USART
+    uart->CR1 = 0;                   // Disable UART
     uart->BRR = FREQ_HZ / baudrate;  // Assuming PCLK2 = FREQ_HZ
     uart->CR1 = BIT(CR1_TE) | BIT(CR1_RE) | BIT(CR1_UE);  // TE, RE, UE
 }
@@ -253,7 +253,8 @@ static inline void uart_write_buffer(struct uart* uart, const void* buffer,
     }
 }
 
-bool timer_expired(uint32_t* timer, uint32_t period, uint32_t now) {
+static inline bool timer_expired(uint32_t* timer, uint32_t period,
+                                 uint32_t now) {
     if (now + period < *timer) {
         *timer = 0;  // Timer overflowed, reset
     }

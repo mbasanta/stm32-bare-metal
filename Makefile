@@ -3,7 +3,7 @@ CFLAGS  ?=  -W -Wall -Wextra -Werror -Wundef -Wshadow -Wdouble-promotion \
             -g3 -Os -ffunction-sections -fdata-sections -I. \
             -mcpu=cortex-m3 -mthumb $(EXTRA_CFLAGS)
 LDFLAGS ?= -Tlink.ld -nostartfiles -nostdlib --specs nano.specs -lc -lgcc -Wl,--gc-sections -Wl,-Map=$@.map
-SOURCES = main.c startup.c
+SOURCES = main.c startup.c syscalls.c
 
 build: firmware.elf
 
