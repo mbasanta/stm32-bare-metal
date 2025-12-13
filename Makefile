@@ -1,14 +1,30 @@
+OPTFLAGS  ?= -Os
 CFLAGS  ?=  -W -Wall -Wextra -Werror -Wundef -Wshadow -Wdouble-promotion \
             -Wformat-truncation -fno-common -Wconversion \
-            -g3 -Os -ffunction-sections -fdata-sections -I. \
+            -ffunction-sections -fdata-sections -I. \
             -mcpu=cortex-m3 -mthumb $(EXTRA_CFLAGS)
 LDFLAGS ?= -Tlink.ld -nostartfiles -nostdlib --specs nano.specs -lc -lgcc -Wl,--gc-sections -Wl,-Map=$@.map
 SOURCES = main.c startup.c syscalls.c
 
+BUILD ?= debug
+
+ifeq ($(BUILD),debug)
+	OPTFLAGS = -O0
+	EXTRA_CFLAGS += -DDEBUG -g3
+else ifeq ($(BUILD),release)
+	OPTFLAGS = -Os
+else
+	$(error Unknown build type: $(BUILD))
+endif
+
+$(info Building with OPTFLAGS=$(OPTFLAGS))
+
+rebuild: clean build
+
 build: firmware.elf
 
 firmware.elf: $(SOURCES)
-	arm-none-eabi-gcc $(SOURCES) $(CFLAGS) $(LDFLAGS) -o $@
+	arm-none-eabi-gcc $(SOURCES) $(CFLAGS) $(OPTFLAGS) $(LDFLAGS) -o $@
 
 firmware.bin: firmware.elf
 	arm-none-eabi-objcopy -O binary $< $@
