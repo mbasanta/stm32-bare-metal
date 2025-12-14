@@ -48,8 +48,10 @@ void _kill(int pid, int sig) { (void)pid, (void)sig; }
 int _getpid(void) { return -1; }
 
 int _write(int fd, char* ptr, int len) {
-    (void)fd, (void)ptr, (void)len;
-    if (fd == 1) uart_write_buffer(UART2, ptr, (size_t)len);
+    if (fd == 1 || fd == 2) {
+        uart_write_buffer(UART2, ptr, (size_t)len);
+        return len;
+    }
     return -1;
 }
 

@@ -59,7 +59,7 @@ static inline void gpio_set_mode(uint16_t gpio_pin, uint8_t output_mode,
 
     uint16_t pin = PINNO(gpio_pin);
 
-    switch (PINBANK(pin)) {
+    switch (PINBANK(gpio_pin)) {
         case 0:
             RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;
             break;
