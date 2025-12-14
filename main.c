@@ -3,7 +3,7 @@
 #include "hal.h"
 
 static volatile uint32_t s_ticks;
-void systick_handler(void) { s_ticks++; }
+void SysTick_Handler(void) { s_ticks++; }
 
 int main(void) {
     // Configure SysTick for 1ms ticks
