@@ -1,14 +1,17 @@
 #include <stdio.h>
 
-#include "hal.h"
+#include "mcu.h"
 
 static volatile uint32_t s_ticks;
 void SysTick_Handler(void) { s_ticks++; }
 
-int main(void) {
-    // Configure SysTick for 1ms ticks
-    systick_init(FREQ_HZ / 1000);
+uint32_t SystemCoreClock = FREQ_HZ;
+void SystemInit(void) {
+    // SystemInit is called before main, set up SysTick here if needed
+    SysTick_Config(SystemCoreClock / 1000);  // 1ms tick
+}
 
+int main(void) {
     uart_init(UART2, 115200);
 
     // Configure PA5 as output push-pull, max speed 10MHz
