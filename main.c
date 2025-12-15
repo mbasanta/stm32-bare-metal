@@ -16,7 +16,7 @@ int main(void) {
 
     // Configure PA5 as output push-pull, max speed 10MHz
     uint16_t pin = PIN('A', 5);  // PA5
-    gpio_set_mode(pin, GPIO_Output_PushPull, GPIO_Speed_10MHz);
+    gpio_set_mode(pin, GPIO_MODE_OUTPUT_PP, GPIO_SPEED_10MHZ);
 
     uint32_t timer = 0;
     uint32_t period = 500;  // Blink period in ms

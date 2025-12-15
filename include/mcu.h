@@ -31,35 +31,76 @@ static inline GPIO_TypeDef* gpio_from_bank(uint8_t bank) {
                                                        : (GPIO_TypeDef*)0;
 }
 
-enum GPIO_Input_Mode {
-    GPIO_Input_Analog = 0,
-    GPIO_Input_Floating = 1,
-    GPIO_Input_PullUpDown = 2
-};
+typedef enum {
+    GPIO_MODE_INPUT_ANALOG,
+    GPIO_MODE_INPUT_FLOATING,
+    GPIO_MODE_INPUT_PULLDOWN,
+    GPIO_MODE_INPUT_PULLUP,
 
-enum GPIO_Output_Mode {
-    GPIO_Output_PushPull = 0,
-    GPIO_Output_OpenDrain = 1,
-    GPIO_Output_AltPushPull = 2,
-    GPIO_Output_AltOpenDrain = 3
-};
+    GPIO_MODE_OUTPUT_PP,
+    GPIO_MODE_OUTPUT_OD,
+    GPIO_MODE_AF_PP,
+    GPIO_MODE_AF_OD,
+} gpio_mode_t;
 
-enum GPIO_Speed {
-    GPIO_Speed_10MHz = 1,
-    GPIO_Speed_2MHz = 2,
-    GPIO_Speed_50MHz = 3
-};
+typedef enum {
+    GPIO_SPEED_10MHZ = 1,  // MODE=01
+    GPIO_SPEED_2MHZ = 2,   // MODE=10
+    GPIO_SPEED_50MHZ = 3,  // MODE=11
+} gpio_speed_t;
 
-static inline void gpio_set_mode(uint16_t gpio_pin, uint8_t output_mode,
-                                 uint8_t speed) {
-    volatile uint32_t* config_reg;
-    uint8_t shift;
+static inline uint32_t gpio_f1_mode_bits(GPIO_TypeDef* gpio, uint8_t pin,
+                                         gpio_mode_t mode, gpio_speed_t speed) {
+    uint32_t cnf = 0, mod = 0;
 
-    GPIO_TypeDef* gpio = gpio_from_bank(PINBANK(gpio_pin));
+    switch (mode) {
+        // Inputs: MODE must be 00
+        case GPIO_MODE_INPUT_ANALOG:
+            cnf = 0b00;
+            mod = 0b00;
+            break;
+        case GPIO_MODE_INPUT_FLOATING:
+            cnf = 0b01;
+            mod = 0b00;
+            break;
 
-    uint16_t pin = PINNO(gpio_pin);
+        case GPIO_MODE_INPUT_PULLDOWN:
+            cnf = 0b10;
+            mod = 0b00;
+            gpio->ODR &= ~(1u << pin);  // ODR=0 => pulldown
+            break;
 
-    switch (PINBANK(gpio_pin)) {
+        case GPIO_MODE_INPUT_PULLUP:
+            cnf = 0b10;
+            mod = 0b00;
+            gpio->ODR |= (1u << pin);  // ODR=1 => pullup
+            break;
+
+        // Outputs: MODE is speed
+        case GPIO_MODE_OUTPUT_PP:
+            cnf = 0b00;
+            mod = (uint32_t)speed;
+            break;
+        case GPIO_MODE_OUTPUT_OD:
+            cnf = 0b01;
+            mod = (uint32_t)speed;
+            break;
+        case GPIO_MODE_AF_PP:
+            cnf = 0b10;
+            mod = (uint32_t)speed;
+            break;
+        case GPIO_MODE_AF_OD:
+            cnf = 0b11;
+            mod = (uint32_t)speed;
+            break;
+    }
+
+    return ((cnf & 0x3u) << 2) | (mod & 0x3u);
+}
+
+static inline void gpio_clock_enable(uint8_t bank) {
+    // STM32F103: GPIOA..GPIOE on APB2
+    switch (bank) {
         case 0:
             RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;
             break;
@@ -76,21 +117,37 @@ static inline void gpio_set_mode(uint16_t gpio_pin, uint8_t output_mode,
             RCC->APB2ENR |= RCC_APB2ENR_IOPEEN;
             break;
         default:
-            break;  // F1 parts vary; handle as needed
+            return;
     }
+
+    // Optional: read-back to ensure the write completes before peripheral use
+    (void)RCC->APB2ENR;
+}
+
+static inline void gpio_set_mode(gpio_pin_t gpio_pin, gpio_mode_t mode,
+                                 gpio_speed_t speed) {
+    const uint8_t bank = PINBANK(gpio_pin);
+    const uint8_t pin = PINNO(gpio_pin);
+
+    GPIO_TypeDef* gpio = gpio_from_bank(bank);
+    if (gpio == (GPIO_TypeDef*)0 || pin > 15) return;
+
+    gpio_clock_enable(bank);
+
+    volatile uint32_t* cr;
+    uint32_t shift;
 
     if (pin < 8) {
-        config_reg = &gpio->CRL;
-        shift = (uint8_t)(pin * 4U);
+        cr = &gpio->CRL;
+        shift = (uint32_t)pin * 4u;
     } else {
-        config_reg = &gpio->CRH;
-        shift = (uint8_t)((pin - 8U) * 4U);
+        cr = &gpio->CRH;
+        shift = (uint32_t)(pin - 8u) * 4u;
     }
 
-    // Clear the 4 bits corresponding to the pin
-    *config_reg &= ~((uint32_t)0xFU << shift);
-    // Set the new mode and speed
-    *config_reg |= (((uint32_t)output_mode << 2U) | speed) << shift;
+    const uint32_t nibble = gpio_f1_mode_bits(gpio, pin, mode, speed);
+
+    *cr = (*cr & ~(0xFu << shift)) | (nibble << shift);
 }
 
 static inline void gpio_write(uint16_t gpio_pin, bool value) {
@@ -128,8 +185,8 @@ static inline void uart_init(USART_TypeDef* uart, uint32_t baudrate) {
         rx = PIN('B', 11);                     // PB11
     }
 
-    gpio_set_mode(tx, GPIO_Output_AltPushPull, GPIO_Speed_50MHz);
-    gpio_set_mode(rx, GPIO_Output_AltPushPull, GPIO_Speed_50MHz);
+    gpio_set_mode(tx, GPIO_MODE_AF_PP, GPIO_SPEED_50MHZ);
+    gpio_set_mode(rx, GPIO_MODE_AF_PP, GPIO_SPEED_50MHZ);
 
     uart->CR1 = 0;                   // Disable UART
     uart->BRR = FREQ_HZ / baudrate;  // Assuming PCLK2 = FREQ_HZ
