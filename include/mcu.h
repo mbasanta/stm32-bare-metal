@@ -186,7 +186,8 @@ static inline void uart_init(USART_TypeDef* uart, uint32_t baudrate) {
     }
 
     gpio_set_mode(tx, GPIO_MODE_AF_PP, GPIO_SPEED_50MHZ);
-    gpio_set_mode(rx, GPIO_MODE_AF_PP, GPIO_SPEED_50MHZ);
+    gpio_set_mode(rx, GPIO_MODE_INPUT_FLOATING,
+                  GPIO_SPEED_2MHZ);  // speed ignored for inputs
 
     uart->CR1 = 0;                   // Disable UART
     uart->BRR = FREQ_HZ / baudrate;  // Assuming PCLK2 = FREQ_HZ
