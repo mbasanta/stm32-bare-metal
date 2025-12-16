@@ -6,7 +6,7 @@
 
 #include "stm32f103xb.h"
 
-#define FREQ_HZ 8000000UL  // 8 MHz
+#define FREQ_HZ 72000000UL  // 72 MHz (max for STM32F103)
 
 #define BIT(x) (1UL << (x))
 
@@ -109,30 +109,34 @@ static inline void gpio_write(uint16_t gpio_pin, bool value) {
 static inline void uart_init(USART_TypeDef* uart, uint32_t baudrate) {
     uint16_t rx;
     uint16_t tx;
+    uint32_t pclk;
 
     if (uart == UART1) {
         RCC->APB2ENR |= RCC_APB2ENR_USART1EN;  // Enable USART1 clock
         tx = PIN('A', 9);                      // PA9
         rx = PIN('A', 10);                     // PA10
+        pclk = FREQ_HZ;                        // USART1 on APB2 (72MHz)
     }
 
     if (uart == UART2) {
         RCC->APB1ENR |= RCC_APB1ENR_USART2EN;  // Enable USART2 clock
         tx = PIN('A', 2);                      // PA2
         rx = PIN('A', 3);                      // PA3
+        pclk = FREQ_HZ / 2;                    // USART2 on APB1 (36MHz)
     }
 
     if (uart == UART3) {
         RCC->APB1ENR |= RCC_APB1ENR_USART3EN;  // Enable USART3 clock
         tx = PIN('B', 10);                     // PB10
         rx = PIN('B', 11);                     // PB11
+        pclk = FREQ_HZ / 2;                    // USART3 on APB1 (36MHz)
     }
 
     gpio_set_mode(tx, GPIO_Output_AltPushPull, GPIO_Speed_50MHz);
     gpio_set_mode(rx, GPIO_Output_AltPushPull, GPIO_Speed_50MHz);
 
-    uart->CR1 = 0;                   // Disable UART
-    uart->BRR = FREQ_HZ / baudrate;  // Assuming PCLK2 = FREQ_HZ
+    uart->CR1 = 0;              // Disable UART
+    uart->BRR = pclk / baudrate;  // Calculate based on APB clock
     uart->CR1 = USART_CR1_TE | USART_CR1_RE | USART_CR1_UE;
 }
 
