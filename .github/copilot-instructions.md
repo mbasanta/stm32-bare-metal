@@ -3,6 +3,7 @@
 ## Project Overview
 This is a minimal bare-metal firmware project for STM32F103 (Cortex-M3) microcontroller following the architecture from [cpq/bare-metal-programming-guide](https://github.com/cpq/bare-metal-programming-guide). No HAL/vendor frameworks—direct register manipulation via CMSIS headers.
 
+**Developement Board:** NUCLEO-F103RB
 **Target:** STM32F103xB (128KB flash, 20KB SRAM, 8MHz HSI clock)  
 **Architecture:** ARM Cortex-M3, Thumb instruction set  
 **Toolchain:** `arm-none-eabi-gcc` with newlib-nano
