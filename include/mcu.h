@@ -135,7 +135,7 @@ static inline void uart_init(USART_TypeDef* uart, uint32_t baudrate) {
     gpio_set_mode(tx, GPIO_Output_AltPushPull, GPIO_Speed_50MHz);
     gpio_set_mode(rx, GPIO_Output_AltPushPull, GPIO_Speed_50MHz);
 
-    uart->CR1 = 0;              // Disable UART
+    uart->CR1 = 0;                // Disable UART
     uart->BRR = pclk / baudrate;  // Calculate based on APB clock
     uart->CR1 = USART_CR1_TE | USART_CR1_RE | USART_CR1_UE;
 }
