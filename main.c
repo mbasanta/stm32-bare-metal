@@ -6,7 +6,9 @@ static volatile uint32_t s_ticks;
 void SysTick_Handler(void) { s_ticks++; }
 
 uint32_t SystemCoreClock = FREQ_HZ;
-void SystemInit(void) {}
+void SystemInit(void) {
+    clock_init();  // Configure clocks to 72MHz
+}
 
 int main(void) {
     SysTick_Config(SystemCoreClock / 1000);  // 1ms tick
