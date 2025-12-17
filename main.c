@@ -21,13 +21,17 @@ int main(void) {
 
     uint32_t timer = 0;
     uint32_t period = 500;  // Blink period in ms
+    uint32_t cycles = 0;
 
     for (;;) {
+        cycles++;
         if (timer_expired(&timer, period, s_ticks)) {
             static bool on;
-            printf("LED: %d, tick: %lu\r\n", on, s_ticks);  // Write message
+            printf("LED: %d, tick: %lu, cycles: %lu\r\n", on, s_ticks,
+                   cycles);  // Write message
             gpio_write(pin, on);
             on = !on;
+            cycles = 0;
         }
     }
 
