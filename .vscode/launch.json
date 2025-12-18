@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug (OpenOCD)",
+            "name": "Debug F103 (Blue Pill)",
             "type": "cortex-debug",
             "request": "launch",
             "servertype": "openocd",
@@ -16,7 +16,24 @@
                 "target/stm32f1x.cfg"
             ],
             "runToEntryPoint": "main",
-            "preLaunchTask": "Build"
+            "preLaunchTask": "Build F103"
+        },
+        {
+            "name": "Debug F411 (Black Pill)",
+            "type": "cortex-debug",
+            "request": "launch",
+            "servertype": "openocd",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/firmware.elf",
+            "gdbPath": "gdb-multiarch",
+            "device": "STM32F411CE",
+            "interface": "swd",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg"
+            ],
+            "runToEntryPoint": "main",
+            "preLaunchTask": "Build F411"
         }
     ]
 }
