@@ -5,7 +5,8 @@ static inline GPIO_TypeDef* gpio_from_bank(uint8_t bank) {
     static GPIO_TypeDef* const ports[] = {
         GPIOA, GPIOB, GPIOC, GPIOD, GPIOE, GPIOH,
     };
-    return (bank < (sizeof(ports) / sizeof(ports[0]))) ? ports[bank] : (GPIO_TypeDef*)0;
+    return (bank < (sizeof(ports) / sizeof(ports[0]))) ? ports[bank]
+                                                       : (GPIO_TypeDef*)0;
 }
 
 typedef enum {
@@ -27,7 +28,8 @@ static inline void gpio_clock_enable(uint8_t bank) {
     (void)RCC->AHB1ENR;
 }
 
-static inline void gpio_set_mode(gpio_pin_t gpio_pin, gpio_mode_t mode, gpio_speed_t speed) {
+static inline void gpio_set_mode(gpio_pin_t gpio_pin, gpio_mode_t mode,
+                                 gpio_speed_t speed) {
     const uint8_t bank = PINBANK(gpio_pin);
     const uint8_t pin = PINNO(gpio_pin);
     GPIO_TypeDef* gpio = gpio_from_bank(bank);
@@ -37,7 +39,7 @@ static inline void gpio_set_mode(gpio_pin_t gpio_pin, gpio_mode_t mode, gpio_spe
 
     gpio->MODER = (gpio->MODER & ~(3U << (pin * 2))) | (mode << (pin * 2));
     gpio->OSPEEDR = (gpio->OSPEEDR & ~(3U << (pin * 2))) | (speed << (pin * 2));
-    gpio->OTYPER &= ~(1U << pin);  // Default: push-pull
+    gpio->OTYPER &= ~(1U << pin);       // Default: push-pull
     gpio->PUPDR &= ~(3U << (pin * 2));  // Default: no pull
 }
 

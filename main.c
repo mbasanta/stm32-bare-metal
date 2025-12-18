@@ -7,9 +7,7 @@ void SysTick_Handler(void) { s_ticks++; }
 
 uint32_t SystemCoreClock = FREQ_HZ;
 
-void SystemInit(void) {
-    clock_init();
-}
+void SystemInit(void) { clock_init(); }
 
 int main(void) {
     SysTick_Config(SystemCoreClock / 1000);  // 1ms tick

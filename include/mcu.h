@@ -6,11 +6,11 @@
 
 // Include target-specific configuration
 #if defined(TARGET_f103)
-    #include "mcu_f103.h"
+#include "mcu_f103.h"
 #elif defined(TARGET_f411)
-    #include "mcu_f411.h"
+#include "mcu_f411.h"
 #else
-    #error "No target defined! Use TARGET=f103 or TARGET=f411"
+#error "No target defined! Use TARGET=f103 or TARGET=f411"
 #endif
 
 #define BIT(x) (1UL << (x))
@@ -29,9 +29,9 @@ static inline void spin(volatile uint32_t count) {
 
 // Include target-specific GPIO and UART implementations
 #if defined(TARGET_f103)
-    #include "gpio_f1.h"
+#include "gpio_f1.h"
 #elif defined(TARGET_f411)
-    #include "gpio_f4.h"
+#include "gpio_f4.h"
 #endif
 
 #ifndef UART_DEBUG

@@ -5,7 +5,7 @@
 
 // Hardware configuration
 #define MCU_NAME "STM32F411 (Black Pill)"
-#define FREQ_HZ 96000000UL  // 96 MHz
+#define FREQ_HZ 96000000UL      // 96 MHz
 #define HSE_FREQ_HZ 25000000UL  // 25MHz external crystal
 
 // Bus clocks
@@ -31,10 +31,12 @@
 static inline void clock_init(void) {
     // Enable HSE (external 25MHz crystal on Black Pill)
     RCC->CR |= RCC_CR_HSEON;
-    while ((RCC->CR & RCC_CR_HSERDY) == 0) {}
+    while ((RCC->CR & RCC_CR_HSERDY) == 0) {
+    }
 
     // Configure Flash latency: 3 wait states required for 96MHz at 3.3V
-    FLASH->ACR = FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_PRFTEN | FLASH_ACR_LATENCY_3WS;
+    FLASH->ACR = FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_PRFTEN |
+                 FLASH_ACR_LATENCY_3WS;
 
     // Configure PLL: HSE ÷ M × N ÷ P
     // 25MHz ÷ 25 = 1MHz (VCO input)
@@ -43,17 +45,18 @@ static inline void clock_init(void) {
     RCC->PLLCFGR = (25 << RCC_PLLCFGR_PLLM_Pos) |
                    (192 << RCC_PLLCFGR_PLLN_Pos) |
                    (0 << RCC_PLLCFGR_PLLP_Pos) |  // PLLP = 2
-                   (4 << RCC_PLLCFGR_PLLQ_Pos) |
-                   RCC_PLLCFGR_PLLSRC_HSE;
+                   (4 << RCC_PLLCFGR_PLLQ_Pos) | RCC_PLLCFGR_PLLSRC_HSE;
 
     // Enable PLL
     RCC->CR |= RCC_CR_PLLON;
-    while ((RCC->CR & RCC_CR_PLLRDY) == 0) {}
+    while ((RCC->CR & RCC_CR_PLLRDY) == 0) {
+    }
 
     // Set APB1 prescaler to /2 (max 50MHz for APB1)
     RCC->CFGR |= RCC_CFGR_PPRE1_DIV2;
 
     // Switch system clock to PLL
     RCC->CFGR |= RCC_CFGR_SW_PLL;
-    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) {}
+    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) {
+    }
 }

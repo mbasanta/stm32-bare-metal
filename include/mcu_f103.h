@@ -5,7 +5,7 @@
 
 // Hardware configuration
 #define MCU_NAME "STM32F103 (Blue Pill)"
-#define FREQ_HZ 72000000UL  // 72 MHz
+#define FREQ_HZ 72000000UL     // 72 MHz
 #define HSE_FREQ_HZ 8000000UL  // 8MHz external crystal
 
 // Bus clocks
@@ -28,7 +28,8 @@
 static inline void clock_init(void) {
     // Enable HSE (external 8MHz crystal)
     RCC->CR |= RCC_CR_HSEON;
-    while ((RCC->CR & RCC_CR_HSERDY) == 0) {}
+    while ((RCC->CR & RCC_CR_HSERDY) == 0) {
+    }
 
     // Configure Flash latency: 2 wait states required for 72MHz
     FLASH->ACR = FLASH_ACR_PRFTBE | FLASH_ACR_LATENCY_2;
@@ -38,12 +39,14 @@ static inline void clock_init(void) {
 
     // Enable PLL
     RCC->CR |= RCC_CR_PLLON;
-    while ((RCC->CR & RCC_CR_PLLRDY) == 0) {}
+    while ((RCC->CR & RCC_CR_PLLRDY) == 0) {
+    }
 
     // Set APB1 prescaler to /2 (max 36MHz for APB1)
     RCC->CFGR |= RCC_CFGR_PPRE1_DIV2;
 
     // Switch system clock to PLL
     RCC->CFGR |= RCC_CFGR_SW_PLL;
-    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) {}
+    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) {
+    }
 }
