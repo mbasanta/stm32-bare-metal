@@ -4,36 +4,41 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "stm32f103xb.h"
+#include "stm32f411xe.h"
 
-#define FREQ_HZ 72000000UL  // 72 MHz (max speed for STM32F103)
+#define FREQ_HZ 96000000UL  // 96 MHz
 
-// Clock configuration: HSE (8MHz) → PLL (×9) → 72MHz SYSCLK
+// Clock configuration: HSE (25MHz on Black Pill) → PLL (÷25 ×192 ÷2) → 96MHz SYSCLK
 static inline void clock_init(void) {
-    // Enable HSE (external 8MHz crystal on Nucleo board)
+    // Enable HSE (external 25MHz crystal on Black Pill)
     RCC->CR |= RCC_CR_HSEON;
-    while ((RCC->CR & RCC_CR_HSERDY) == 0) {
-    }  // Wait for HSE ready
+    while ((RCC->CR & RCC_CR_HSERDY) == 0) {}  // Wait for HSE ready
 
-    // Configure Flash latency: 2 wait states required for 72MHz
-    FLASH->ACR = FLASH_ACR_PRFTBE | FLASH_ACR_LATENCY_2;
+    // Configure Flash latency: 3 wait states required for 96MHz at 3.3V
+    FLASH->ACR = FLASH_ACR_ICEN | FLASH_ACR_DCEN | FLASH_ACR_PRFTEN | FLASH_ACR_LATENCY_3WS;
 
-    // Configure PLL: HSE × 9 = 8MHz × 9 = 72MHz
-    // PLLMUL = 0111 (×9), PLLSRC = 1 (HSE)
-    RCC->CFGR = RCC_CFGR_PLLMULL9 | RCC_CFGR_PLLSRC;
+    // Configure PLL: HSE ÷ M × N ÷ P
+    // 25MHz ÷ 25 = 1MHz (VCO input)
+    // 1MHz × 192 = 192MHz (VCO output)
+    // 192MHz ÷ 2 = 96MHz (system clock)
+    // PLLM=25, PLLN=192, PLLP=2 (00), PLLQ=4, PLLSRC=HSE
+    RCC->PLLCFGR = (25 << RCC_PLLCFGR_PLLM_Pos) |
+                   (192 << RCC_PLLCFGR_PLLN_Pos) |
+                   (0 << RCC_PLLCFGR_PLLP_Pos) |  // PLLP = 2
+                   (4 << RCC_PLLCFGR_PLLQ_Pos) |
+                   RCC_PLLCFGR_PLLSRC_HSE;
 
     // Enable PLL
     RCC->CR |= RCC_CR_PLLON;
-    while ((RCC->CR & RCC_CR_PLLRDY) == 0) {
-    }  // Wait for PLL ready
+    while ((RCC->CR & RCC_CR_PLLRDY) == 0) {}  // Wait for PLL ready
 
-    // Set APB1 prescaler to /2 (max 36MHz for APB1)
-    RCC->CFGR |= RCC_CFGR_PPRE1_DIV2;
+    // Set APB1 prescaler to /2 (max 50MHz for APB1)
+    // Set APB2 prescaler to /1 (max 100MHz for APB2)
+    RCC->CFGR |= RCC_CFGR_PPRE1_DIV2;  // APB1 = 48MHz
 
     // Switch system clock to PLL
     RCC->CFGR |= RCC_CFGR_SW_PLL;
-    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) {
-    }  // Wait for switch
+    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL) {}  // Wait for switch
 }
 
 #define BIT(x) (1UL << (x))
@@ -52,7 +57,7 @@ static inline void spin(volatile uint32_t count) {
 
 static inline GPIO_TypeDef* gpio_from_bank(uint8_t bank) {
     static GPIO_TypeDef* const ports[] = {
-        GPIOA, GPIOB, GPIOC, GPIOD, GPIOE,
+        GPIOA, GPIOB, GPIOC, GPIOD, GPIOE, GPIOH,
     };
 
     return (bank < (sizeof(ports) / sizeof(ports[0]))) ? ports[bank]
@@ -60,96 +65,34 @@ static inline GPIO_TypeDef* gpio_from_bank(uint8_t bank) {
 }
 
 typedef enum {
-    GPIO_MODE_INPUT_ANALOG,
-    GPIO_MODE_INPUT_FLOATING,
-    GPIO_MODE_INPUT_PULLDOWN,
-    GPIO_MODE_INPUT_PULLUP,
-
-    GPIO_MODE_OUTPUT_PP,
-    GPIO_MODE_OUTPUT_OD,
-    GPIO_MODE_AF_PP,
-    GPIO_MODE_AF_OD,
+    GPIO_MODE_INPUT,
+    GPIO_MODE_OUTPUT,
+    GPIO_MODE_AF,
+    GPIO_MODE_ANALOG,
 } gpio_mode_t;
 
 typedef enum {
-    GPIO_SPEED_10MHZ = 1,  // MODE=01
-    GPIO_SPEED_2MHZ = 2,   // MODE=10
-    GPIO_SPEED_50MHZ = 3,  // MODE=11
+    GPIO_OTYPE_PP = 0,  // Push-pull
+    GPIO_OTYPE_OD = 1,  // Open-drain
+} gpio_otype_t;
+
+typedef enum {
+    GPIO_SPEED_LOW = 0,
+    GPIO_SPEED_MEDIUM = 1,
+    GPIO_SPEED_HIGH = 2,
+    GPIO_SPEED_VERY_HIGH = 3,
 } gpio_speed_t;
 
-static inline uint32_t gpio_f1_mode_bits(GPIO_TypeDef* gpio, uint8_t pin,
-                                         gpio_mode_t mode, gpio_speed_t speed) {
-    uint32_t cnf = 0, mod = 0;
-
-    switch (mode) {
-        // Inputs: MODE must be 00
-        case GPIO_MODE_INPUT_ANALOG:
-            cnf = 0b00;
-            mod = 0b00;
-            break;
-        case GPIO_MODE_INPUT_FLOATING:
-            cnf = 0b01;
-            mod = 0b00;
-            break;
-
-        case GPIO_MODE_INPUT_PULLDOWN:
-            cnf = 0b10;
-            mod = 0b00;
-            gpio->ODR &= ~(1u << pin);  // ODR=0 => pulldown
-            break;
-
-        case GPIO_MODE_INPUT_PULLUP:
-            cnf = 0b10;
-            mod = 0b00;
-            gpio->ODR |= (1u << pin);  // ODR=1 => pullup
-            break;
-
-        // Outputs: MODE is speed
-        case GPIO_MODE_OUTPUT_PP:
-            cnf = 0b00;
-            mod = (uint32_t)speed;
-            break;
-        case GPIO_MODE_OUTPUT_OD:
-            cnf = 0b01;
-            mod = (uint32_t)speed;
-            break;
-        case GPIO_MODE_AF_PP:
-            cnf = 0b10;
-            mod = (uint32_t)speed;
-            break;
-        case GPIO_MODE_AF_OD:
-            cnf = 0b11;
-            mod = (uint32_t)speed;
-            break;
-    }
-
-    return ((cnf & 0x3u) << 2) | (mod & 0x3u);
-}
+typedef enum {
+    GPIO_PULL_NONE = 0,
+    GPIO_PULL_UP = 1,
+    GPIO_PULL_DOWN = 2,
+} gpio_pull_t;
 
 static inline void gpio_clock_enable(uint8_t bank) {
-    // STM32F103: GPIOA..GPIOE on APB2
-    switch (bank) {
-        case 0:
-            RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;
-            break;
-        case 1:
-            RCC->APB2ENR |= RCC_APB2ENR_IOPBEN;
-            break;
-        case 2:
-            RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;
-            break;
-        case 3:
-            RCC->APB2ENR |= RCC_APB2ENR_IOPDEN;
-            break;
-        case 4:
-            RCC->APB2ENR |= RCC_APB2ENR_IOPEEN;
-            break;
-        default:
-            return;
-    }
-
-    // Optional: read-back to ensure the write completes before peripheral use
-    (void)RCC->APB2ENR;
+    // STM32F4: GPIOx on AHB1
+    RCC->AHB1ENR |= (1U << bank);
+    (void)RCC->AHB1ENR;  // Read-back to ensure write completes
 }
 
 static inline void gpio_set_mode(gpio_pin_t gpio_pin, gpio_mode_t mode,
@@ -162,20 +105,17 @@ static inline void gpio_set_mode(gpio_pin_t gpio_pin, gpio_mode_t mode,
 
     gpio_clock_enable(bank);
 
-    volatile uint32_t* cr;
-    uint32_t shift;
+    // Set mode (2 bits per pin)
+    gpio->MODER = (gpio->MODER & ~(3U << (pin * 2))) | (mode << (pin * 2));
 
-    if (pin < 8) {
-        cr = &gpio->CRL;
-        shift = (uint32_t)pin * 4u;
-    } else {
-        cr = &gpio->CRH;
-        shift = (uint32_t)(pin - 8u) * 4u;
-    }
+    // Set speed (2 bits per pin)
+    gpio->OSPEEDR = (gpio->OSPEEDR & ~(3U << (pin * 2))) | (speed << (pin * 2));
 
-    const uint32_t nibble = gpio_f1_mode_bits(gpio, pin, mode, speed);
+    // Default to push-pull output
+    gpio->OTYPER &= ~(1U << pin);
 
-    *cr = (*cr & ~(0xFu << shift)) | (nibble << shift);
+    // Default to no pull-up/pull-down
+    gpio->PUPDR &= ~(3U << (pin * 2));
 }
 
 static inline void gpio_write(uint16_t gpio_pin, bool value) {
@@ -185,41 +125,58 @@ static inline void gpio_write(uint16_t gpio_pin, bool value) {
 
 #define UART1 USART1
 #define UART2 USART2
-#define UART3 USART3
+#define UART6 USART6
 
 #ifndef UART_DEBUG
 #define UART_DEBUG UART2
 #endif
 
+static inline void gpio_set_af(gpio_pin_t gpio_pin, uint8_t af) {
+    const uint8_t bank = PINBANK(gpio_pin);
+    const uint8_t pin = PINNO(gpio_pin);
+    GPIO_TypeDef* gpio = gpio_from_bank(bank);
+    if (gpio == (GPIO_TypeDef*)0 || pin > 15) return;
+
+    volatile uint32_t* afr = (pin < 8) ? &gpio->AFR[0] : &gpio->AFR[1];
+    uint8_t shift = (pin & 7) * 4;
+    *afr = (*afr & ~(0xFU << shift)) | ((uint32_t)af << shift);
+}
+
 static inline void uart_init(USART_TypeDef* uart, uint32_t baudrate) {
     uint16_t rx;
     uint16_t tx;
     uint32_t pclk;
+    uint8_t af;
 
     if (uart == UART1) {
         RCC->APB2ENR |= RCC_APB2ENR_USART1EN;  // Enable USART1 clock
         tx = PIN('A', 9);                      // PA9
         rx = PIN('A', 10);                     // PA10
-        pclk = FREQ_HZ;                        // APB2 = 72MHz
+        pclk = FREQ_HZ;                        // APB2 = 96MHz
+        af = 7;                                // AF7 = USART1/2
     }
 
     if (uart == UART2) {
         RCC->APB1ENR |= RCC_APB1ENR_USART2EN;  // Enable USART2 clock
         tx = PIN('A', 2);                      // PA2
         rx = PIN('A', 3);                      // PA3
-        pclk = FREQ_HZ / 2;                    // APB1 = 36MHz
+        pclk = FREQ_HZ / 2;                    // APB1 = 48MHz
+        af = 7;                                // AF7 = USART1/2
     }
 
-    if (uart == UART3) {
-        RCC->APB1ENR |= RCC_APB1ENR_USART3EN;  // Enable USART3 clock
-        tx = PIN('B', 10);                     // PB10
-        rx = PIN('B', 11);                     // PB11
-        pclk = FREQ_HZ / 2;                    // APB1 = 36MHz
+    if (uart == UART6) {
+        RCC->APB2ENR |= RCC_APB2ENR_USART6EN;  // Enable USART6 clock
+        tx = PIN('A', 11);                     // PA11
+        rx = PIN('A', 12);                     // PA12
+        pclk = FREQ_HZ;                        // APB2 = 96MHz
+        af = 8;                                // AF8 = USART6
     }
 
-    gpio_set_mode(tx, GPIO_MODE_AF_PP, GPIO_SPEED_50MHZ);
-    gpio_set_mode(rx, GPIO_MODE_INPUT_FLOATING,
-                  GPIO_SPEED_2MHZ);  // speed ignored for inputs
+    // Configure GPIO pins for UART
+    gpio_set_mode(tx, GPIO_MODE_AF, GPIO_SPEED_VERY_HIGH);
+    gpio_set_mode(rx, GPIO_MODE_AF, GPIO_SPEED_VERY_HIGH);
+    gpio_set_af(tx, af);
+    gpio_set_af(rx, af);
 
     uart->CR1 = 0;                // Disable UART
     uart->BRR = pclk / baudrate;  // Use correct APB clock
