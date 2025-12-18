@@ -50,4 +50,8 @@ release
 *.su
 *.idb
 *.pdb
+
+# CMSIS dependencies (cloned during build)
+cmsis_core/
+cmsis_f1/
 cmsis_f4/
