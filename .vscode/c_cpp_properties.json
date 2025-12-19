@@ -1,7 +1,7 @@
 {
     "configurations": [
         {
-            "name": "STM32",
+            "name": "STM32F103 (Blue Pill)",
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/include/**",
@@ -9,7 +9,25 @@
                 "${workspaceFolder}/cmsis_core/CMSIS/Core/Include"
             ],
             "defines": [
-                "STM32F103xB"
+                "STM32F103xB",
+                "TARGET_f103"
+            ],
+            "compilerPath": "/usr/bin/arm-none-eabi-gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-arm"
+        },
+        {
+            "name": "STM32F411 (Black Pill)",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/include/**",
+                "${workspaceFolder}/cmsis_f4/Include",
+                "${workspaceFolder}/cmsis_core/CMSIS/Core/Include"
+            ],
+            "defines": [
+                "STM32F411xE",
+                "TARGET_f411"
             ],
             "compilerPath": "/usr/bin/arm-none-eabi-gcc",
             "cStandard": "c11",

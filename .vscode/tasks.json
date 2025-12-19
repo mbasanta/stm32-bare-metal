@@ -2,11 +2,25 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build",
+            "label": "Build F103",
             "type": "shell",
             "command": "make",
             "args": [
-                "build"
+                "build",
+                "TARGET=f103"
+            ],
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "Build F411",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "build",
+                "TARGET=f411"
             ],
             "group": {
                 "kind": "build",
@@ -15,6 +29,35 @@
             "problemMatcher": [
                 "$gcc"
             ]
+        },
+        {
+            "label": "Clean",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "clean"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Flash F103",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "flash",
+                "TARGET=f103"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Flash F411",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "flash",
+                "TARGET=f411"
+            ],
+            "problemMatcher": []
         }
     ]
 }
