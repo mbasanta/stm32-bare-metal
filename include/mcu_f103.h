@@ -16,6 +16,11 @@
 #define LED_PIN PIN('C', 13)
 #define LED_ACTIVE_LOW 1  // Blue Pill LED is active-low
 
+// I2C configuration (optional)
+#define I2C_SCL_PIN PIN('B', 6)
+#define I2C_SDA_PIN PIN('B', 7)
+#define I2C_AF 1  // AF1 for I2C1
+
 // UART configuration
 #define UART1_TX_PIN PIN('A', 9)
 #define UART1_RX_PIN PIN('A', 10)

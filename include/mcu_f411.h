@@ -16,16 +16,21 @@
 #define LED_PIN PIN('C', 13)
 #define LED_ACTIVE_LOW 1  // Black Pill LED is active-low
 
+// I2C configuration (optional)
+#define I2C_SCL_PIN PIN('B', 6)
+#define I2C_SDA_PIN PIN('B', 7)
+#define I2C_AF 4  // AF4 for I2C1
+
 // UART configuration
 #define UART1_TX_PIN PIN('A', 9)
 #define UART1_RX_PIN PIN('A', 10)
-#define UART1_AF 7
+#define UART1_AF 7  // AF7 for USART1
 #define UART2_TX_PIN PIN('A', 2)
 #define UART2_RX_PIN PIN('A', 3)
-#define UART2_AF 7
+#define UART2_AF 7  // AF7 for USART2i
 #define UART6_TX_PIN PIN('A', 11)
 #define UART6_RX_PIN PIN('A', 12)
-#define UART6_AF 8
+#define UART6_AF 8  // AF8 for USART6
 
 // Clock initialization
 static inline void clock_init(void) {
