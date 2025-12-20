@@ -109,12 +109,13 @@ static inline void lcd_init(void) {
     RCC->APB1RSTR |= RCC_APB1RSTR_I2C1RST;
     RCC->APB1RSTR &= ~RCC_APB1RSTR_I2C1RST;
 
-    // Configure I2C timing for 100kHz (APB1 = 48MHz on F411)
+    // Configure I2C timing for 100kHz
     // FREQ = APB1/1MHz, TRISE = (1000ns/APB1_period)+1, CCR = APB1/(2*100kHz)
-    I2C1->CR2 = 48;          // APB1 frequency in MHz
-    I2C1->TRISE = 49;        // (1000ns / 20.8ns) + 1 = 49
-    I2C1->CCR = 240;         // 48MHz / (2 * 100kHz) = 240
-    I2C1->CR1 = I2C_CR1_PE;  // Enable I2C1
+    uint32_t apb1_mhz = APB1_FREQ_HZ / 1000000;
+    I2C1->CR2 = apb1_mhz;                     // APB1 frequency in MHz
+    I2C1->TRISE = apb1_mhz + 1;               // (1000ns / APB1_period) + 1
+    I2C1->CCR = APB1_FREQ_HZ / (2 * 100000);  // APB1 / (2 * 100kHz)
+    I2C1->CR1 = I2C_CR1_PE;                   // Enable I2C1
 
     // Wait >40ms after power-on (datasheet requirement)
     for (volatile int i = 0; i < 100000; i++) {
